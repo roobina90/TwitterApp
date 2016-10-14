@@ -18,27 +18,30 @@ const githubSearch = R.compose(R.map(extractImage), Http.get, makeUrl);
 
 var GitHub = React.createClass({
     displayName: "GitHub",
-    getInitialState() { return { term: "", result: "" } },
+    getInitialState() { return { term: "", result: [] } },
 
     termChanged({currentTarget: t}) {
         this.setState({ term: t.value });
     },
     updateResult(x) {
-        this.setState({result: x});
+        var newResult = this.state.result.concat([x]);
+        this.setState({ result: newResult });
     },
 
     searchClicked(_) {
-        githubSearch(this.state.term).fork(this.props.shorError, this.updateResult);
+        githubSearch(this.state.term).fork(this.props.showError, this.updateResult);
     },
 
 
     render() {
-        const profileImage =  <img src={this.state.result}/>;
+        const profileImages = (this.state.result).map(function(source) {
+            return <img src={source}/>
+        });
         return (
             <div id="gitHub">
                 <input onChange={this.termChanged}/>
                 <button onClick={this.searchClicked}>Search</button>
-                <div id="results">{profileImage}</div>
+                <div id="results">{profileImages}</div>
             </div>
         );
     }
