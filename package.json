@@ -13,6 +13,7 @@
   "author": "roobina90",
   "license": "MIT",
   "dependencies": {
+    "daggy": "0.0.1",
     "react": "^15.3.2",
     "react-dom": "^15.3.2"
   }

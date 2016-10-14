@@ -1,0 +1,10 @@
+#collage {
+    position: fixed;
+    bottom: 0;
+    height: 200px;
+    background-color: palevioletred;
+    width: 100%;
+}
+#collage img {
+    position: absolute;
+}
