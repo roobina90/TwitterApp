@@ -1,3 +1,3 @@
-#Twitter App
+#Github App
 
 ##functional style with dr Boolean
