@@ -15,13 +15,43 @@ const makeUrl = function(t) {
     return baseUrl + t;
 };
 
+
+const mayToOpt = (m) => m.cata({Just: Option.Some, Nothing: () => Option.None});
 const baseUrl = "https://api.github.com/users/";
 
-const extractImage = R.prop("avatar_url");
-const githubSearch = R.compose(R.map(R.compose(newPhoto, extractImage)), Http.get, makeUrl);
+const toPhoto = R.compose(newPhoto, R.prop("avatar_url"));
+const indexOf = R.curry((x,xs) => {
+    const idx = xs.indexOf(x);
+    return idx < 0 ? Maybe.Nothing() : Maybe.Just(idx);
+});
+const indexOfPhoto = R.curry((p,ps) => indexOf(p.src, ps.map(R.prop('src'))));
+
+const replacePhoto = R.curry((p,ps) => R.compose(pointfree.fold(R.append(p), () => R.append(p,ps)),
+                                                 mayToOpt, 
+                                                 R.map(i => R.remove(i, 1, ps)), 
+                                                 indexOfPhoto(p))(ps));
+
+
+const githubSearch = R.compose(R.map(toPhoto), Http.get, makeUrl);
 
  /* model <---- */
 const preventDefault = e => e.preventDefault();
+
+var DragImage = React.createClass({
+    displayName: "DragImage",
+    
+    onDragStart({dataTransfer: dt, currentTarget: t}) {
+        dt.setData('text', t.src);
+    },
+
+    render() {
+        const imageSource = this.props.src,
+        dragStart = this.onDragStart,
+        imageStyle = this.props.style;
+        return <img src={imageSource} {...this.props} width="100" draggable={true} onDragStart={dragStart}/> 
+
+    }
+});
 
 var Collage = React.createClass({
     displayName: "Collage",
@@ -30,13 +60,15 @@ var Collage = React.createClass({
         this.setState({photos: xs});
     }, 
 
-    onDrop({dataTransfer: dt}) { 
+    onDrop({dataTransfer: dt, clientX: x, clientY: y, currentTarget: t}) { 
+        const offset = t.getBoundingClientRect().top;
         const src = dt.getData("text");
-        this.updatePhotos(R.append(src, this.state.photos));
+        const photo = Photo(src, x, y-offset);
+        this.updatePhotos(replacePhoto(photo, this.state.photos));
     },
     render() {
-        const images = (this.state.photos).map(function(source) {
-            return <img src={source} width="100"/>
+        const images = (this.state.photos).map(function(photo) {
+            return <DragImage src={photo.src}  style={{left: photo.x, top: photo.y}}/>
         });
         return ( 
             <div id="collage" onDrop={this.onDrop} onDragOver={preventDefault}>{images}</div>
@@ -60,14 +92,11 @@ var GitHub = React.createClass({
         githubSearch(this.state.term).fork(this.props.showError, this.updateResult);
     },
 
-    onDragStart({dataTransfer: dt, currentTarget: t}) {
-        dt.setData('text', t.src);
-    },
-
+  
     render() {
         const drag = this.onDragStart;
         const profileImages = (this.state.result).map(function(photo) {
-            return <img src={photo.src} key={photo.src} draggable={true} onDragStart={drag} width="100"/>
+            return <DragImage src={photo.src}/>
         });
         return (
             <div id="gitHub">
